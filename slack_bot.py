@@ -1,7 +1,9 @@
+import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import time
 import requests
 import schedule
-import os
 from datetime import datetime, time as dt_time, timedelta
 from dotenv import load_dotenv
 import pytz
@@ -20,6 +22,28 @@ NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 # Time restrictions in Nepal time (24-hour format)
 START_TIME = dt_time(10, 0)  # 10:00 AM Nepal time
 END_TIME = dt_time(21, 0)    # 6:00 PM Nepal time
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'Bot is running!')
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
+    def log_message(self, format, *args):
+        # Suppress default logging
+        pass
+
+def start_http_server():
+    """Start HTTP server for Render health checks"""
+    port = int(os.environ.get('PORT', 10000))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    print(f"Health check server running on port {port}")
+    server.serve_forever()
 
 def validate_config():
     if not SLACK_BOT_TOKEN:
@@ -134,6 +158,10 @@ def log_status():
         print(f"🔴 IDLE: Outside working hours at {current_time_str}")
 
 def main():
+    # Start HTTP server in a separate thread
+    http_thread = threading.Thread(target=start_http_server, daemon=True)
+    http_thread.start()
+    
     print("=" * 70)
     print("🚀 KRISHNA BOT WITH BHAGAVAD GITA WISDOM STARTING...")
     print("=" * 70)
@@ -169,8 +197,8 @@ def main():
     print("💡 Press Ctrl+C to stop the bot")
     print("-" * 70)
     
-    # Schedule messages every 10 minutes
-    schedule.every(45).minutes.do(send_message)
+    # Schedule messages every 45 minutes
+    schedule.every(1).minutes.do(send_message)
     
     # Schedule status log every hour
     schedule.every().hour.do(log_status)
