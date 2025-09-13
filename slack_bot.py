@@ -97,7 +97,7 @@ def send_message():
     # Get a random quote from Bhagavad Gita
     wisdom_quote = get_random_quote()  # or use get_daily_quote() for same quote per day
     
-    message = f"*Dear Keronz and Deephang,*\n\n{wisdom_quote}\n\nRegards,\n*Shree Krishna*"
+    message = f"*Dear Devotee,*\n\n{wisdom_quote}\n\nRegards,\n*Shree Krishna*"
     
     payload = {
         "channel": CHANNEL_ID,
@@ -198,7 +198,7 @@ def main():
     print("-" * 70)
     
     # Schedule messages every 45 minutes
-    schedule.every(1).minutes.do(send_message)
+    schedule.every(60).minutes.do(send_message)
     
     # Schedule status log every hour
     schedule.every().hour.do(log_status)
