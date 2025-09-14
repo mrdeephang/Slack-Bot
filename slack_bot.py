@@ -21,7 +21,7 @@ NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 
 # Time restrictions in Nepal time (24-hour format)
 START_TIME = dt_time(10, 0)  # 10:00 AM Nepal time
-END_TIME = dt_time(22, 0)    # 6:00 PM Nepal time (changed from 21:00)
+END_TIME = dt_time(18, 0)    # 6:00 PM Nepal time (changed from 21:00)
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
