@@ -21,7 +21,7 @@ NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 
 # Time restrictions in Nepal time (24-hour format)
 START_TIME = dt_time(10, 0)  # 10:00 AM Nepal time
-END_TIME = dt_time(21, 0)    # 6:00 PM Nepal time
+END_TIME = dt_time(22, 0)    # 6:00 PM Nepal time (changed from 21:00)
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -157,8 +157,13 @@ def log_status():
     else:
         print(f"🔴 IDLE: Outside working hours at {current_time_str}")
 
+def schedule_sharp_time_messages():
+
+    schedule.every().hour.at(":00").do(send_message)
+    schedule.every().hour.at(":30").do(send_message)
+    
+
 def main():
-    # Start HTTP server in a separate thread
     http_thread = threading.Thread(target=start_http_server, daemon=True)
     http_thread.start()
     
@@ -174,7 +179,7 @@ def main():
     print(f"🎯 Target channel ID: {CHANNEL_ID}")
     print(f"🔑 Token: {SLACK_BOT_TOKEN[:12]}{'*' * 20}")
     print(f"⏰ Working hours (Nepal time): {START_TIME.strftime('%I:%M %p')} - {END_TIME.strftime('%I:%M %p')}")
-    print(f"📅 Frequency: Every 10 minutes (during working hours)")
+    print(f"📅 Frequency: Every 30 minutes at sharp times (during working hours)")
     print(f"🔄 Status check: Every hour")
     print(f"📜 Wisdom: Random Bhagavad Gita quotes")
     print("-" * 70)
@@ -197,8 +202,8 @@ def main():
     print("💡 Press Ctrl+C to stop the bot")
     print("-" * 70)
     
-    # Schedule messages every 45 minutes
-    schedule.every(60).minutes.do(send_message)
+    # Schedule messages at sharp times
+    schedule_sharp_time_messages()
     
     # Schedule status log every hour
     schedule.every().hour.do(log_status)
