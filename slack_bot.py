@@ -4,7 +4,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import time
 import requests
 import schedule
-from datetime import datetime, time as dt_time, timedelta
+from datetime import datetime, time as dt_time
 from dotenv import load_dotenv
 import pytz
 from gita_quotes import get_random_quote, get_daily_quote  # Import our quotes
@@ -21,7 +21,7 @@ NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 
 # Time restrictions in Nepal time (24-hour format)
 START_TIME = dt_time(10, 0)  # 10:00 AM Nepal time
-END_TIME = dt_time(18, 0)    # 6:00 PM Nepal time (changed from 21:00)
+END_TIME = dt_time(23, 0)    # 6:00 PM Nepal time
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -35,8 +35,7 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.end_headers()
     
     def log_message(self, format, *args):
-        # Suppress default logging
-        pass
+        pass  # Suppress default logging
 
 def start_http_server():
     """Start HTTP server for Render health checks"""
@@ -95,7 +94,7 @@ def send_message():
     current_time_str = nepal_time.strftime("%Y-%m-%d %H:%M:%S")
     
     # Get a random quote from Bhagavad Gita
-    wisdom_quote = get_random_quote()  # or use get_daily_quote() for same quote per day
+    wisdom_quote = get_random_quote()  # or use get_daily_quote()
     
     message = f"*Dear Devotee,*\n\n{wisdom_quote}\n\nRegards,\n*Shree Krishna*"
     
@@ -157,11 +156,13 @@ def log_status():
     else:
         print(f"🔴 IDLE: Outside working hours at {current_time_str}")
 
-def schedule_sharp_time_messages():
-
-    schedule.every().hour.at(":00").do(send_message)
-    schedule.every().hour.at(":30").do(send_message)
-    
+def check_and_send():
+    """Check every minute if it's :00 or :30 in Nepal and send message"""
+    nepal_time = get_nepal_time()
+    minute = nepal_time.minute
+    if minute in (0, 30):
+        print(f"🕒 Sharp time check at {nepal_time.strftime('%H:%M')} NPT")
+        send_message()
 
 def main():
     http_thread = threading.Thread(target=start_http_server, daemon=True)
@@ -171,7 +172,6 @@ def main():
     print("🚀 KRISHNA BOT WITH BHAGAVAD GITA WISDOM STARTING...")
     print("=" * 70)
     
-    # Validate configuration
     if not validate_config():
         return
     
@@ -179,19 +179,17 @@ def main():
     print(f"🎯 Target channel ID: {CHANNEL_ID}")
     print(f"🔑 Token: {SLACK_BOT_TOKEN[:12]}{'*' * 20}")
     print(f"⏰ Working hours (Nepal time): {START_TIME.strftime('%I:%M %p')} - {END_TIME.strftime('%I:%M %p')}")
-    print(f"📅 Frequency: Every 30 minutes at sharp times (during working hours)")
+    print(f"📅 Frequency: Every 30 minutes (Nepal time) at sharp :00 and :30")
     print(f"🔄 Status check: Every hour")
     print(f"📜 Wisdom: Random Bhagavad Gita quotes")
     print("-" * 70)
     
-    # Test connection
     if not test_connection():
         print("❌ Failed to connect to Slack. Check your bot token.")
         return
     
     nepal_time = get_nepal_time()
-    current_time_str = nepal_time.strftime("%Y-%m-%d %H:%M:%S %Z%z")
-    print(f"⏰ Current Nepal time: {current_time_str}")
+    print(f"⏰ Current Nepal time: {nepal_time.strftime('%Y-%m-%d %H:%M:%S %Z%z')}")
     
     if is_within_working_hours():
         print("✅ Currently within working hours - bot will send messages")
@@ -202,21 +200,12 @@ def main():
     print("💡 Press Ctrl+C to stop the bot")
     print("-" * 70)
     
-    # Schedule messages at sharp times
-    schedule_sharp_time_messages()
+    # Schedule jobs
+    schedule.every(1).minutes.do(check_and_send)  # check sharp times
+    schedule.every().hour.do(log_status)          # status log
     
-    # Schedule status log every hour
-    schedule.every().hour.do(log_status)
-    
-    # Log initial status
     log_status()
     
-    # Send initial message if within working hours
-    if is_within_working_hours():
-        print("📤 Sending initial message...")
-        send_message()
-    
-    # Keep running
     try:
         while True:
             schedule.run_pending()
