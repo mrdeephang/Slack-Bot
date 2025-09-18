@@ -1,4 +1,4 @@
-# Shree Krishna Slack Bot
+# Shree Krishna Slack Bot 
 
 A minimalist Slack bot that shares wisdom from the Bhagavad Gita.
 
@@ -29,9 +29,6 @@ A minimalist Slack bot that shares wisdom from the Bhagavad Gita.
 
 - Deployed on `Render`
 
-## Contributing
-
-Fork, create a branch, make changes, submit PR.
 
 ## Author
 
