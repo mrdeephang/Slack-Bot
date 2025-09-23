@@ -10,8 +10,7 @@ A minimalist Slack bot that shares wisdom from the Bhagavad Gita.
    ```
    SLACK_BOT_TOKEN=your_bot_token
    SLACK_APP_TOKEN=your_app_token
-   SLACK_SIGNING_SECRET=your_signing_secret
-   ```
+
 4. Run: `python/python3 slack_bot.py`
 
 ## Usage
