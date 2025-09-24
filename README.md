@@ -28,6 +28,10 @@ A minimalist Slack bot that shares wisdom from the Bhagavad Gita.
 
 - Deployed on `Render`
 
+## Future Enhancement
+
+- Use APi to fetch Gita quotes for unlimited Gita quotes
+
 
 ## Author
 
