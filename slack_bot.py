@@ -7,9 +7,9 @@ import schedule
 from datetime import datetime, time as dt_time
 from dotenv import load_dotenv
 import pytz
-from gita_quotes import get_random_quote, get_daily_quote
+from gita_quotes import get_random_quote
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,8 +17,8 @@ load_dotenv()
 # Slack session with retry
 session = requests.Session()
 retry = Retry(
-    total=3,                # Retry 3 times
-    backoff_factor=2,       # Wait 2s, 4s, 8s between retries
+    total=3,
+    backoff_factor=2,
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["POST"]
 )
@@ -41,9 +41,16 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/health':
             self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
+            self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(b'Bot is running!')
+            response = {
+                "status": "healthy",
+                "service": "Krishna Bot",
+                "timestamp": datetime.now().isoformat(),
+                "nepal_time": get_nepal_time().isoformat()
+            }
+            import json
+            self.wfile.write(json.dumps(response).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -56,7 +63,8 @@ def start_http_server():
     """Start HTTP server for Render health checks"""
     port = int(os.environ.get('PORT', 10000))
     server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
-    print(f"Health check server running on port {port}")
+    print(f"✅ Health check server running on port {port}")
+    print(f"🔗 Health endpoint: http://0.0.0.0:{port}/health")
     server.serve_forever()
 
 
@@ -69,9 +77,6 @@ def validate_config():
         return False
     if not SLACK_BOT_TOKEN.startswith('xoxb-'):
         print("❌ ERROR: Invalid SLACK_BOT_TOKEN format")
-        return False
-    if not CHANNEL_ID.startswith('C'):
-        print("❌ ERROR: Invalid CHANNEL_ID format")
         return False
     return True
 
@@ -155,7 +160,7 @@ def test_connection():
 
 
 def log_status():
-    """Log current status every hour"""
+    """Log current status"""
     nepal_time = get_nepal_time()
     current_time_str = nepal_time.strftime("%Y-%m-%d %H:%M:%S %Z%z")
     if is_within_working_hours():
@@ -173,6 +178,7 @@ def check_and_send():
 
 
 def main():
+    # Start health check server in a separate thread
     http_thread = threading.Thread(target=start_http_server, daemon=True)
     http_thread.start()
 
@@ -183,12 +189,10 @@ def main():
     if not validate_config():
         return
 
-    print("🔒 Configuration loaded from .env file")
+    print("🔒 Configuration loaded successfully")
     print(f"🎯 Target channel ID: {CHANNEL_ID}")
-    print(f"🔑 Token: {SLACK_BOT_TOKEN[:12]}{'*' * 20}")
     print(f"⏰ Working hours (Nepal time): {START_TIME.strftime('%I:%M %p')} - {END_TIME.strftime('%I:%M %p')}")
     print("📅 Frequency: Every 30 minutes (Nepal time) at sharp :00 and :30")
-    print("🔄 Status check: Every hour")
     print("📜 Wisdom: Random Bhagavad Gita quotes")
     print("-" * 70)
 
