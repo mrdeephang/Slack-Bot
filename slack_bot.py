@@ -10,8 +10,16 @@ import pytz
 from gita_quotes import get_random_quote
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import logging
 
-# Load environment variables from .env file
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
 # Slack session with retry
@@ -34,7 +42,7 @@ NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 
 # Working hours
 START_TIME = dt_time(10, 0)  # 10:00 AM
-END_TIME = dt_time(21, 0)    # 9:00 PM
+END_TIME = dt_time(18, 0)    # 6:00 PM
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -56,27 +64,26 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def log_message(self, format, *args):
-        pass  # Suppress default logging
+        pass  # Suppress default HTTP logging
 
 
 def start_http_server():
     """Start HTTP server for Render health checks"""
     port = int(os.environ.get('PORT', 10000))
     server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
-    print(f"✅ Health check server running on port {port}")
-    print(f"🔗 Health endpoint: http://0.0.0.0:{port}/health")
+    logger.info(f"Health check server running on port {port}")
     server.serve_forever()
 
 
 def validate_config():
     if not SLACK_BOT_TOKEN:
-        print("❌ ERROR: SLACK_BOT_TOKEN not found in .env file")
+        logger.error("SLACK_BOT_TOKEN not found in .env file")
         return False
     if not CHANNEL_ID:
-        print("❌ ERROR: CHANNEL_ID not found in .env file")
+        logger.error("CHANNEL_ID not found in .env file")
         return False
     if not SLACK_BOT_TOKEN.startswith('xoxb-'):
-        print("❌ ERROR: Invalid SLACK_BOT_TOKEN format")
+        logger.error("Invalid SLACK_BOT_TOKEN format")
         return False
     return True
 
@@ -96,8 +103,7 @@ def is_within_working_hours():
 def send_message():
     """Send a message with Bhagavad Gita wisdom if within working hours"""
     if not is_within_working_hours():
-        nepal_time = get_nepal_time()
-        print(f"⏰ Outside working hours at {nepal_time.strftime('%Y-%m-%d %H:%M:%S %Z%z')} - skipping message")
+        logger.debug(f"Outside working hours - skipping message")
         return
 
     url = "https://slack.com/api/chat.postMessage"
@@ -107,8 +113,6 @@ def send_message():
     }
 
     nepal_time = get_nepal_time()
-    current_time_str = nepal_time.strftime("%Y-%m-%d %H:%M:%S")
-
     wisdom_quote = get_random_quote()
     message = f"*Dear Devotee,*\n\n{wisdom_quote}\n\nRegards,\n*Shree Krishna*"
 
@@ -125,16 +129,15 @@ def send_message():
         if response.status_code == 200:
             result = response.json()
             if result["ok"]:
-                print(f"✅ Message sent successfully at {current_time_str}")
-                print(f"📜 Quote: {wisdom_quote[:50]}...")
+                logger.info(f"Message sent successfully at {nepal_time.strftime('%H:%M')}")
             else:
-                print(f"❌ Error sending message: {result.get('error', 'Unknown error')}")
+                logger.error(f"Error sending message: {result.get('error', 'Unknown error')}")
         else:
-            print(f"❌ HTTP Error: {response.status_code}")
+            logger.error(f"HTTP Error: {response.status_code}")
     except requests.exceptions.RequestException as e:
-        print(f"❌ Network error after retries: {e}")
+        logger.error(f"Network error: {e}")
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        logger.error(f"Unexpected error: {e}")
 
 
 def test_connection():
@@ -146,34 +149,33 @@ def test_connection():
         if response.status_code == 200:
             data = response.json()
             if data["ok"]:
-                print(f"✅ Connected as: {data['user']}")
+                logger.info(f"Connected as: {data['user']}")
                 return True
             else:
-                print(f"❌ Auth error: {data.get('error', 'Unknown error')}")
+                logger.error(f"Auth error: {data.get('error', 'Unknown error')}")
                 return False
         else:
-            print(f"❌ HTTP Error: {response.status_code}")
+            logger.error(f"HTTP Error: {response.status_code}")
             return False
     except Exception as e:
-        print(f"❌ Connection error: {e}")
+        logger.error(f"Connection error: {e}")
         return False
 
 
 def log_status():
     """Log current status"""
     nepal_time = get_nepal_time()
-    current_time_str = nepal_time.strftime("%Y-%m-%d %H:%M:%S %Z%z")
     if is_within_working_hours():
-        print(f"🟢 ACTIVE: Bot is running at {current_time_str}")
+        logger.info(f"Status: ACTIVE at {nepal_time.strftime('%H:%M')} NPT")
     else:
-        print(f"🔴 IDLE: Outside working hours at {current_time_str}")
+        logger.info(f"Status: IDLE (outside working hours)")
 
 
 def check_and_send():
     """Check every minute if it's :00 or :30 in Nepal and send message"""
     nepal_time = get_nepal_time()
     if nepal_time.minute in (0, 30):
-        print(f"🕒 Sharp time check at {nepal_time.strftime('%H:%M')} NPT")
+        logger.info(f"Sharp time trigger at {nepal_time.strftime('%H:%M')} NPT")
         send_message()
 
 
@@ -182,35 +184,30 @@ def main():
     http_thread = threading.Thread(target=start_http_server, daemon=True)
     http_thread.start()
 
-    print("=" * 70)
-    print("🚀 KRISHNA BOT WITH BHAGAVAD GITA WISDOM STARTING...")
-    print("=" * 70)
+    logger.info("=" * 50)
+    logger.info("Krishna Bot Starting...")
+    logger.info("=" * 50)
 
     if not validate_config():
         return
 
-    print("🔒 Configuration loaded successfully")
-    print(f"🎯 Target channel ID: {CHANNEL_ID}")
-    print(f"⏰ Working hours (Nepal time): {START_TIME.strftime('%I:%M %p')} - {END_TIME.strftime('%I:%M %p')}")
-    print("📅 Frequency: Every 30 minutes (Nepal time) at sharp :00 and :30")
-    print("📜 Wisdom: Random Bhagavad Gita quotes")
-    print("-" * 70)
+    logger.info(f"Target channel: {CHANNEL_ID}")
+    logger.info(f"Working hours: {START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')} NPT")
+    logger.info(f"Frequency: Every 30 minutes at :00 and :30")
 
     if not test_connection():
-        print("❌ Failed to connect to Slack. Check your bot token.")
+        logger.error("Failed to connect to Slack")
         return
 
     nepal_time = get_nepal_time()
-    print(f"⏰ Current Nepal time: {nepal_time.strftime('%Y-%m-%d %H:%M:%S %Z%z')}")
+    logger.info(f"Current Nepal time: {nepal_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
 
     if is_within_working_hours():
-        print("✅ Currently within working hours - bot will send messages")
+        logger.info("Currently within working hours")
     else:
-        print("⏰ Currently outside working hours - bot will wait")
+        logger.info("Currently outside working hours")
 
-    print("✅ Bot setup complete! Starting scheduled operation...")
-    print("💡 Press Ctrl+C to stop the bot")
-    print("-" * 70)
+    logger.info("Bot setup complete - starting scheduled operation")
 
     # Schedule jobs
     schedule.every(1).minutes.do(check_and_send)
@@ -223,9 +220,7 @@ def main():
             schedule.run_pending()
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n" + "=" * 70)
-        print("👋 Bot stopped by user. Goodbye!")
-        print("=" * 70)
+        logger.info("Bot stopped by user")
 
 
 if __name__ == "__main__":
