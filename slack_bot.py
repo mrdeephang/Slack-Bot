@@ -24,7 +24,7 @@ PORT = int(os.getenv("PORT", 10000))
 
 NEPAL_TIMEZONE = pytz.timezone("Asia/Kathmandu")
 START_TIME = dt_time(10, 0)
-END_TIME = dt_time(18, 0)
+END_TIME = dt_time(23, 0)
 
 WORKSPACES_FILE = "workspaces.json"
 
