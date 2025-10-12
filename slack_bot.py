@@ -44,7 +44,7 @@ BASE_URL = os.getenv('BASE_URL', 'https://slack-bot-b653.onrender.com')
 
 NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 START_TIME = dt_time(10, 0)
-END_TIME = dt_time(18, 0)
+END_TIME = dt_time(23, 0)
 
 # Temporary storage for installed workspace tokens
 WORKSPACE_TOKENS = {}
