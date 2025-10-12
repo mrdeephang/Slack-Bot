@@ -8,13 +8,20 @@ from datetime import datetime, time as dt_time
 from dotenv import load_dotenv
 import pytz
 from gita_quotes import get_random_quote
+from urllib.parse import urlparse, parse_qs
 import json
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# -------------------------------
+# Logging
+# -------------------------------
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# -------------------------------
+# Load .env
+# -------------------------------
 load_dotenv()
 
 SLACK_CLIENT_ID = os.getenv("SLACK_CLIENT_ID")
@@ -22,15 +29,17 @@ SLACK_CLIENT_SECRET = os.getenv("SLACK_CLIENT_SECRET")
 BASE_URL = os.getenv("BASE_URL")
 PORT = int(os.getenv("PORT", 10000))
 
+# Nepal timezone & working hours
 NEPAL_TIMEZONE = pytz.timezone("Asia/Kathmandu")
 START_TIME = dt_time(10, 0)
-END_TIME = dt_time(23, 0)
+END_TIME = dt_time(18, 0)
 
+# JSON file to store workspaces dynamically
 WORKSPACES_FILE = "workspaces.json"
 
-# ---------------------------------------------
-# JSON storage functions
-# ---------------------------------------------
+# -------------------------------
+# Workspace JSON helpers
+# -------------------------------
 def load_workspaces():
     try:
         with open(WORKSPACES_FILE, "r") as f:
@@ -44,9 +53,9 @@ def save_workspace(team_id, bot_token, channel_id):
     with open(WORKSPACES_FILE, "w") as f:
         json.dump(workspaces, f)
 
-# ---------------------------------------------
+# -------------------------------
 # Health check server
-# ---------------------------------------------
+# -------------------------------
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
@@ -63,17 +72,18 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
     def log_message(self, format, *args):
-        pass  # suppress logging
+        pass  # suppress default logging
 
 def start_http_server():
     server = HTTPServer(("0.0.0.0", PORT), HealthCheckHandler)
     logger.info(f"Health check server running on port {PORT}")
     server.serve_forever()
 
-# ---------------------------------------------
+# -------------------------------
 # Time helpers
-# ---------------------------------------------
+# -------------------------------
 def get_nepal_time():
     utc_now = pytz.utc.localize(datetime.utcnow())
     return utc_now.astimezone(NEPAL_TIMEZONE)
@@ -82,14 +92,16 @@ def is_within_working_hours():
     nepal_time = get_nepal_time()
     return START_TIME <= nepal_time.time() <= END_TIME
 
-# ---------------------------------------------
+# -------------------------------
 # Slack message sender
-# ---------------------------------------------
+# -------------------------------
 def send_message(bot_token, channel_id):
     url = "https://slack.com/api/chat.postMessage"
-    headers = {"Authorization": f"Bearer {bot_token}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {bot_token}",
+               "Content-Type": "application/json"}
     message = f"*Dear Devotee,*\n\n{get_random_quote()}\n\nRegards,\n*Shree Krishna*"
-    payload = {"channel": channel_id, "text": message, "username": "Krishna Bot", "icon_emoji": ":lotus_position:", "mrkdwn": True}
+    payload = {"channel": channel_id, "text": message,
+               "username": "Krishna Bot", "icon_emoji": ":lotus_position:", "mrkdwn": True}
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=20)
@@ -106,9 +118,9 @@ def send_message_to_all():
     for team_id, info in workspaces.items():
         send_message(info["bot_token"], info["channel_id"])
 
-# ---------------------------------------------
+# -------------------------------
 # Scheduler
-# ---------------------------------------------
+# -------------------------------
 def check_and_send():
     nepal_time = get_nepal_time()
     if nepal_time.minute in (0, 30) and is_within_working_hours():
@@ -121,14 +133,16 @@ def log_status():
     else:
         logger.info(f"Status: IDLE (outside working hours)")
 
-# ---------------------------------------------
-# OAuth redirect handler (for multi-workspace)
-# ---------------------------------------------
+# -------------------------------
+# OAuth handler for multi-workspace
+# -------------------------------
 class OAuthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path.startswith("/slack/oauth_redirect"):
-            from urllib.parse import urlparse, parse_qs
-            query = parse_qs(urlparse(self.path).query)
+        parsed_url = urlparse(self.path)
+        path = parsed_url.path
+        query = parse_qs(parsed_url.query)
+
+        if path == "/slack/oauth_redirect":
             code = query.get("code", [None])[0]
             if code:
                 # Exchange code for access token
@@ -144,7 +158,10 @@ class OAuthHandler(BaseHTTPRequestHandler):
                 if bot_token and team_id:
                     # Get a channel where bot is a member
                     headers = {"Authorization": f"Bearer {bot_token}"}
-                    ch_resp = requests.get("https://slack.com/api/conversations.list?types=public_channel,private_channel", headers=headers).json()
+                    ch_resp = requests.get(
+                        "https://slack.com/api/conversations.list?types=public_channel,private_channel",
+                        headers=headers
+                    ).json()
                     channels = [c["id"] for c in ch_resp.get("channels", []) if c.get("is_member")]
                     if channels:
                         channel_id = channels[0]  # pick first channel bot is in
@@ -155,20 +172,26 @@ class OAuthHandler(BaseHTTPRequestHandler):
                         self.wfile.write(b"App installed successfully! Krishna Bot will now send quotes here.")
                         logger.info(f"New workspace added: {team_id}, channel {channel_id}")
                         return
+
             self.send_response(400)
             self.end_headers()
             self.wfile.write(b"Installation failed")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
     def log_message(self, format, *args):
-        pass
+        pass  # suppress logging
 
 def start_oauth_server():
-    server = HTTPServer(("0.0.0.0", PORT+1), OAuthHandler)  # using PORT+1 for OAuth to avoid conflict
+    # Run OAuth server on PORT+1 to avoid conflict
+    server = HTTPServer(("0.0.0.0", PORT+1), OAuthHandler)
     logger.info(f"OAuth server running on port {PORT+1}")
     server.serve_forever()
 
-# ---------------------------------------------
+# -------------------------------
 # Main
-# ---------------------------------------------
+# -------------------------------
 def main():
     threading.Thread(target=start_http_server, daemon=True).start()
     threading.Thread(target=start_oauth_server, daemon=True).start()
