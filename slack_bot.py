@@ -171,17 +171,17 @@ def log_status():
         logger.info(f"Status: IDLE (outside working hours)")
 
 # prod
-# def check_and_send():
-#     """Check every minute if it's :00 or :30 in Nepal and send message"""
-#     nepal_time = get_nepal_time()
-#     if nepal_time.minute in (0, 30):
-#         logger.info(f"Sharp time trigger at {nepal_time.strftime('%H:%M')} NPT")
-#         send_message()
-
-# test
 def check_and_send():
-    if is_within_working_hours():
+    """Check every minute if it's :00 or :30 in Nepal and send message"""
+    nepal_time = get_nepal_time()
+    if nepal_time.minute in (0, 30):
+        logger.info(f"Sharp time trigger at {nepal_time.strftime('%H:%M')} NPT")
         send_message()
+
+# # test
+# def check_and_send():
+#     if is_within_working_hours():
+#         send_message()
 
 
 def main():
