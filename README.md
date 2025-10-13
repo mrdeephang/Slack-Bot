@@ -2,42 +2,82 @@
 
 A minimalist Slack bot that shares wisdom from the Bhagavad Gita.
 
-## Setup
+---
 
-1. Clone the repository
-2. python/python3 -m venv venv
-3. source venv/bin/activate(linux/macos) or windows: venv\Scripts\activate(cmd) or \venv\Scripts\Activate.ps1(PowerShell)
-4. Install dependencies: `pip install -r requirements.txt`
-5. Create `.env` file with your Slack tokens:
+## Getting Started
 
-   ```
-   SLACK_BOT_TOKEN=your_bot_token
-   CHANNEL_ID=your_channel_id
+Clone the repository and set up your environment:
 
-   ```
+```bash
+git clone https://github.com/mrdeephang/Slack-Bot.git
+cd Slack-Bot
+```
 
-6. Run: `python/python3 slack_bot.py`
+Create and activate a virtual environment:
 
-## Usage
+```bash
+# Linux/macOS
+python3 -m venv venv
+source venv/bin/activate
 
-- `@Shree Krishna quote` - Get a random Gita quote
-- Daily wisdom sharing in configured channels
+# Windows (Command Prompt)
+python -m venv venv
+venv\Scripts\activate
 
-## Files
+# Windows (PowerShell)
+python -m venv venv
+venv\Scripts\Activate.ps1
+```
 
-- `slack_bot.py` - Main bot logic
-- gita_quotes.py - Functions to fetch random or daily Gita quotes
-- `gita_quotes_data.py` - Quote database
-- `.env` - Configuration (not tracked)
+Install the required dependencies:
 
-## Deploy
+```bash
+pip install -r requirements.txt
+```
 
-- Deployed on `Render`
+## Configuration
 
-## Future Enhancement
+Create a `.env` file in the root directory with your Slack credentials:
 
-- Use APi to fetch Gita quotes for unlimited Gita quotes
+```env
+SLACK_BOT_TOKEN=your_bot_token
+CHANNEL_ID=your_channel_id
+```
 
-## Author
+## Running the Bot
 
-Copyright © 2025 Deephang Thegim. All rights reserved.
+Start the bot with:
+
+```bash
+python3 slack_bot.py
+```
+
+## Commands
+
+The bot responds to the following:
+
+**@Shree Krishna quote** — Receive a random quote from the Bhagavad Gita
+
+The bot also shares daily wisdom automatically in your configured channels.
+
+## Project Structure
+
+```
+├── slack_bot.py           # Core bot implementation
+├── gita_quotes.py         # Quote retrieval logic
+├── gita_quotes_data.py    # Quote collection
+├── requirements.txt       # Python dependencies
+└── .env                   # Environment variables (not tracked)
+```
+
+## Deployment
+
+Currently deployed on Render.
+
+## Roadmap
+
+Integration with external APIs is planned to expand the quote database and provide unlimited wisdom from the Gita.
+
+---
+
+**Copyright © 2025 Deephang Thegim. All rights reserved.**
