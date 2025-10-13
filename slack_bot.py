@@ -42,7 +42,7 @@ NEPAL_TIMEZONE = pytz.timezone('Asia/Kathmandu')
 
 # Working hours
 START_TIME = dt_time(10, 0)  # 10:00 AM
-END_TIME = dt_time(23, 0)    # 11:00 PM
+END_TIME = dt_time(18, 0)    # 6:00 PM
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
