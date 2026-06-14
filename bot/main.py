@@ -7,7 +7,7 @@ import schedule
 from datetime import datetime, time as dt_time
 from dotenv import load_dotenv
 import pytz
-from gita_quotes import get_random_quote
+from bot.quotes.gita import get_random_quote
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import logging

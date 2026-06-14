@@ -1,5 +1,5 @@
 import random
-from gita_quotes_data import GITA_QUOTES
+from bot.quotes.data import GITA_QUOTES
 
 def get_random_quote():
     """Return a random Gita-inspired quote"""
