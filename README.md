@@ -80,4 +80,4 @@ Integration with external APIs is planned to expand the quote database and provi
 
 ---
 
-**Copyright © 2025 Deephang Thegim. All rights reserved.**
+**Copyright © 2026 Deephang Thegim. All rights reserved.**
